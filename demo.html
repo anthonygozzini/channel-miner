@@ -1,0 +1,191 @@
+<title>channel-miner — 40-second demo</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+:root{--bg:#0b0d10;--panel:#14171c;--line:#232830;--ink:#e8ebe6;--soft:#9aa2ab;--faint:#6f767e;
+--accent:#7aa2f7;--warm:#e0af68;--good:#9ece6a;--mono:ui-monospace,SFMono-Regular,Menlo,monospace}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 system-ui,-apple-system,Segoe UI,sans-serif}
+.wrap{max-width:880px;margin:0 auto;padding:26px 20px 90px}
+h1{font-size:1.4rem;margin:0 0 4px;letter-spacing:-.02em}
+.sub{color:var(--soft);margin:0 0 20px;font-size:.92rem}
+.sub b{color:var(--accent)}
+.progress{position:fixed;top:0;left:0;height:3px;background:var(--accent);width:0%}
+.caption{position:fixed;left:0;right:0;bottom:0;background:linear-gradient(transparent,rgba(5,7,9,.97) 32%);
+padding:38px 20px 20px;text-align:center;font-size:1.02rem;opacity:0;transition:opacity .5s}
+.caption.on{opacity:1}.caption b{color:var(--accent)}
+.term{background:#0d1016;border:1px solid var(--line);border-radius:10px;padding:14px 16px;
+font-family:var(--mono);font-size:.86rem;white-space:pre-wrap;word-break:break-word;min-height:46px;overflow-x:auto}
+.term .p{color:var(--good)}.term .c{color:var(--faint)}.term .hl{color:var(--warm)}
+.caret{display:inline-block;width:8px;background:var(--accent);height:1em;vertical-align:-2px;animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+.stats{display:flex;flex-wrap:wrap;gap:10px;margin:16px 0}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 15px;min-width:112px;flex:1 1 112px}
+.stat .k{font-size:.64rem;text-transform:uppercase;letter-spacing:.08em;color:var(--faint)}
+.stat .n{font-family:var(--mono);font-weight:700;font-size:1.12rem;margin-top:3px}
+.files{border:1px solid var(--line);border-radius:10px;background:var(--panel);overflow:hidden;margin:14px 0}
+.frow{display:flex;gap:12px;padding:9px 14px;border-bottom:1px solid var(--line);font-size:.88rem;align-items:baseline}
+.frow:last-child{border-bottom:0}
+.fname{font-family:var(--mono);color:var(--accent);min-width:130px}
+.fdesc{color:var(--soft)}
+.quote{border:1px solid var(--line);border-left:3px solid var(--warm);border-radius:10px;background:var(--panel);padding:14px 16px;margin:12px 0}
+.qmeta{font-family:var(--mono);font-size:.74rem;color:var(--faint);margin-bottom:8px}
+.qtext{font-family:var(--mono);font-size:.84rem;line-height:1.7}
+.qtext .t{color:var(--faint)}
+.qtext mark{background:rgba(224,175,104,.18);color:var(--warm);padding:0 2px;border-radius:3px}
+.note{color:var(--soft);font-size:.88rem;margin:10px 0 0}
+.end{text-align:center;padding:56px 0 20px}
+.end h2{font-family:var(--mono);font-size:1.3rem;margin:0 0 8px}
+.end p{color:var(--soft);margin:6px 0}
+.end a{color:var(--accent)}
+.replay{margin-top:20px;background:transparent;border:1px solid var(--line);color:var(--soft);
+border-radius:10px;padding:10px 20px;cursor:pointer;font:inherit;font-size:.88rem}
+.truth{position:fixed;top:9px;right:12px;font-family:var(--mono);font-size:.62rem;color:var(--faint)}
+#stage>*{display:none}
+@media(max-width:560px){.fname{min-width:0}.frow{flex-direction:column;gap:2px}}
+</style>
+<div class="progress" id="prog"></div>
+<div class="truth">every number below is from a real run</div>
+<div class="wrap">
+  <h1>channel-miner</h1>
+  <p class="sub">Read a YouTube channel instead of watching it. <b>Runs entirely on your own computer.</b></p>
+
+  <div class="term" id="term"><span class="caret"></span></div>
+
+  <div id="stage">
+    <div id="s-scan">
+      <div class="stats">
+        <div class="stat"><div class="k">videos found</div><div class="n" id="n-vid">0</div></div>
+        <div class="stat"><div class="k">hours of video</div><div class="n" id="n-hrs">0</div></div>
+        <div class="stat"><div class="k">language</div><div class="n" id="n-lang">detecting…</div></div>
+      </div>
+      <p class="note">Nobody was asked which language the channel speaks — it is read from the videos.</p>
+    </div>
+
+    <div id="s-files">
+      <div class="stats">
+        <div class="stat"><div class="k">transcribed</div><div class="n">170 / 179</div></div>
+        <div class="stat"><div class="k">lines of text</div><div class="n">328,391</div></div>
+        <div class="stat"><div class="k">on disk</div><div class="n">237 MB</div></div>
+      </div>
+      <div class="files">
+        <div class="frow"><span class="fname">txt/</span><span class="fdesc">every video as readable text, with timestamps</span></div>
+        <div class="frow"><span class="fname">vtt/</span><span class="fdesc">the original captions, untouched</span></div>
+        <div class="frow"><span class="fname">index.csv</span><span class="fdesc">one row per video — id, date, length, title</span></div>
+        <div class="frow"><span class="fname">segments.jsonl</span><span class="fdesc">the same text in ~40-second pieces, for searching</span></div>
+      </div>
+    </div>
+
+    <div id="s-find">
+      <div class="quote">
+        <div class="qmeta">1F427wokeU8 · 2024-01-11 · a 4h02m devstream · found at 01:39:36</div>
+        <div class="qtext">
+<span class="t">[01:39:30]</span> images uh so we we do this for <mark>legal</mark><br>
+<span class="t">[01:39:33]</span> reasons um so that we we don't actually<br>
+<span class="t">[01:39:36]</span> have to ship any <mark>copyrighted</mark> assets or<br>
+<span class="t">[01:39:40]</span> anything like that um so everything that you see<br>
+        </div>
+      </div>
+      <p class="note">One sentence, said once, an hour and a half into a four-hour stream from two years ago.
+      Nobody was ever going to find that by watching.</p>
+    </div>
+
+    <div id="s-ai">
+      <div class="files">
+        <div class="frow"><span class="fname">findings.md</span><span class="fdesc">only what your rubric does <b>not</b> already cover</span></div>
+      </div>
+      <p class="note">Optional. Tell it what you already know, and a model on your own machine reads
+      the whole corpus against it. Most videos produce nothing — that is the point.</p>
+    </div>
+
+    <div id="s-end" class="end">
+      <h2>./setup.sh &lt;channel-url&gt;</h2>
+      <p>That is the only thing you supply.</p>
+      <p style="margin-top:18px"><a href="https://github.com/anthonygozzini/channel-miner">github.com/anthonygozzini/channel-miner</a></p>
+      <button class="replay" id="replay">replay</button>
+    </div>
+  </div>
+</div>
+<div class="caption" id="cap"></div>
+<script>
+var T=[],STEPS=[],t0=0;
+// ?t=<ms> renders the timeline frozen at that instant, with no animation. It is how the README
+// gif is captured: one headless screenshot per frame, rather than filming a screen.
+var JUMP=null;try{var _q=new URLSearchParams(location.search).get('t');if(_q!=null)JUMP=parseInt(_q,10);}catch(e){}
+if(JUMP!=null){var _st=document.createElement('style');_st.textContent='*{transition:none!important;animation:none!important}';document.head.appendChild(_st);}
+var term=document.getElementById('term'),cap=document.getElementById('cap'),prog=document.getElementById('prog');
+function show(id,on){document.getElementById(id).style.display=on?'block':'none';}
+function hideAll(){['s-scan','s-files','s-find','s-ai','s-end'].forEach(function(i){show(i,false);});}
+function caption(t){if(!t){cap.classList.remove('on');return;}cap.innerHTML=t;cap.classList.add('on');}
+function at(ms,fn){if(JUMP!=null){STEPS.push([ms,fn]);}else{T.push(setTimeout(fn,ms));}}
+function type(html,done){
+  if(JUMP!=null){term.innerHTML=html;done&&done();return;}
+  var plain=html.replace(/<[^>]+>/g,''),i=0;
+  var iv=setInterval(function(){
+    i++;
+    term.innerHTML=plain.slice(0,i)+'<span class="caret"></span>';
+    if(i>=plain.length){clearInterval(iv);term.innerHTML=html+'<span class="caret"></span>';done&&done();}
+  },26);
+}
+function countTo(el,target,ms,suffix){
+  if(JUMP!=null){el.textContent=target.toLocaleString()+(suffix||'');return;}
+  var start=Date.now();
+  var iv=setInterval(function(){
+    var k=Math.min(1,(Date.now()-start)/ms);
+    el.textContent=Math.floor(target*k).toLocaleString()+(suffix||'');
+    if(k>=1)clearInterval(iv);
+  },40);
+}
+function run(){
+  T.forEach(clearTimeout);T=[];hideAll();caption('');term.innerHTML='<span class="caret"></span>';
+  prog.style.transition='none';prog.style.width='0%';
+  setTimeout(function(){prog.style.transition='width 40s linear';prog.style.width='100%';},60);
+
+  at(400,function(){type('<span class="p">$</span> ./setup.sh https://www.youtube.com/@legend-of-dragoon');});
+  at(2600,function(){
+    caption('One link. <b>Nothing else to fill in</b> — no topics, no settings, no account.');
+  });
+  at(4800,function(){
+    type('<span class="p">$</span> ./run.sh --no-read\n<span class="c">walking the channel…</span>');
+    show('s-scan',true);
+    countTo(document.getElementById('n-vid'),179,2200);
+    countTo(document.getElementById('n-hrs'),377,2200);
+  });
+  at(7200,function(){document.getElementById('n-lang').textContent='en';});
+  at(7600,function(){
+    caption('It walks the whole back catalogue — <b>377 hours</b> across 179 videos —<br>and works out the language from the videos themselves.');
+  });
+  at(12000,function(){
+    hideAll();caption('');
+    type('<span class="p">$</span> ls data/');
+    show('s-files',true);
+  });
+  at(14200,function(){
+    caption('Every video is now a text file you own. <b>237 MB instead of 377 hours.</b><br>Run it again tomorrow and only the new videos are fetched.');
+  });
+  at(19000,function(){
+    hideAll();caption('');
+    type('<span class="p">$</span> grep -ri <span class="hl">"copyrighted"</span> data/txt/');
+    show('s-find',true);
+  });
+  at(21500,function(){
+    caption('This is what it is for. <b>A question answered in half a second</b><br>that no amount of watching was ever going to answer.');
+  });
+  at(27500,function(){
+    hideAll();caption('');
+    type('<span class="p">$</span> ./run.sh <span class="c"># with a rubric and a local model</span>');
+    show('s-ai',true);
+  });
+  at(29800,function(){
+    caption('And if you tell it what you already know, it reads the corpus for you —<br><b>on your machine, with a model you downloaded.</b> Nothing leaves.');
+  });
+  at(35500,function(){hideAll();caption('');term.style.display='none';show('s-end',true);});
+  at(40000,function(){term.style.display='';});
+  if(JUMP!=null){
+    STEPS.sort(function(a,b){return a[0]-b[0];});
+    STEPS.forEach(function(st){if(st[0]<=JUMP)st[1]();});
+    prog.style.transition='none';prog.style.width=Math.min(100,JUMP/400)+'%';
+  }
+}
+document.getElementById('replay').onclick=function(){term.style.display='';run();};
+run();
+</script>
